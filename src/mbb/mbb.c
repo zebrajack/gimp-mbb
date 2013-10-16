@@ -302,7 +302,7 @@ static Image *data_to_image(int width, int height, int channels,
   scaled_width = eval_scaled_dimension(width);
   scaled_height = eval_scaled_dimension(height);
 
-  image_ctor(img, width, height, channels);
+  image_ctor(img, scaled_width, scaled_height, channels);
 
   for (hi = 0; hi < img->height; ++hi) {
     float hin = hi/(float)img->height + 1.0f/(2*img->height);
