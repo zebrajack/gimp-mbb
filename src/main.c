@@ -5,7 +5,8 @@
 
 #include "mbb/mbb.h"
 
-static void blend(gint drawable_ID, gint image_ID);
+static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
+                  gint32 mask_layer_id, gint32 img_id);
 static void query(void);
 static void run(const gchar      *name,
                 gint              nparams,
@@ -75,6 +76,8 @@ static void run(const gchar      *name,
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
   GimpRunMode run_mode;
   GimpDrawable *drawable;
+  gint num_layers;
+  gint *layers_ids;
 
   /* Setting mandatory output values */
   *nreturn_vals = 1;
@@ -88,10 +91,12 @@ static void run(const gchar      *name,
   run_mode = param[0].data.d_int32;
 
   /*  Get the specified drawable  */
-//  drawable = gimp_drawable_get(param[2].data.d_drawable);
+  drawable = gimp_drawable_get(param[2].data.d_drawable);
 
-  //if (run_mode != GIMP_RUN_NONINTERACTIVE)
-  //  g_message("Hello, world!\n");
+  if (run_mode != GIMP_RUN_NONINTERACTIVE) {
+    // g_message("Hello, world!\n");
+    // TODO: Show gui to the user.
+  }
 
   /* Let's time blur
    *mset
@@ -104,62 +109,56 @@ static void run(const gchar      *name,
    *   g_timer_destroy (timer);
    */
 
-//  gint num_layers = 0;
-//  gint *layers = gimp_image_get_layers(param[1].data.d_image, &num_layers);
-//  fprintf(p_file, "num_l = %d\n", num_layers);
-//  int i = 0;
-//  for (i = 0; i < num_layers; ++i)
-//    fprintf(p_file, "l %d = %d\n", i, layers[i]);
-
-//  fprintf(p_file, "drawable = %d\n", param[2].data.d_drawable);
+  layers_ids = gimp_image_get_layers(param[1].data.d_image, &num_layers);
 
   gimp_progress_init("Blending...");
   gimp_progress_update(0.0);
 
-  blend(param[2].data.d_drawable, param[1].data.d_image);
+  blend(layers_ids[0], layers_ids[1], layers_ids[2], param[1].data.d_image);
 
   gimp_progress_update(1.0);
 
   gimp_displays_flush();
-  gimp_drawable_detach(drawable);
+//  gimp_drawable_detach(drawable);
 
+  fprintf(p_file, "num_layers = %d\n", num_layers);
   fclose(p_file);
 }
 
-static void blend(gint drawable_ID, gint image_ID) {
-  gint         width, height, channels;
-  gint         x1, y1, x2, y2;
-  GimpPixelRgn rgn_in, rgn_in0, rgn_in1, rgn_inmask, rgn_out;
+static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
+                  gint32 mask_layer_id, gint32 img_id) {
 
-  GimpDrawable *drawable = gimp_drawable_get(drawable_ID);
+  gint         width, height, channels, temp_channels;
+  gint         x0, y0, x1, y1,
+               temp_x0, temp_y0, temp_x1, temp_y1;
+  GimpPixelRgn rgn_img0, rgn_img1, rgn_mask, rgn_out;
+
+  /* Gets upper left and lower right coordinates. */
+  gimp_drawable_mask_bounds(img0_layer_id, &x0, &y0, &x1, &y1);
+  channels = gimp_drawable_bpp(img0_layer_id);
+
+  gimp_drawable_mask_bounds(img1_layer_id, &temp_x0, &temp_y0, &temp_x1, &temp_y1);
+  temp_channels = gimp_drawable_bpp(img1_layer_id);
+
+  gimp_drawable_mask_bounds(mask_layer_id, &temp_x0, &temp_y0, &temp_x1, &temp_y1);
+  temp_channels = gimp_drawable_bpp(mask_layer_id);
+
+  // TODO: Send an error if img0 attributes are different from img1 and mask.
+
+  width = x1 - x0;
+  height = y1 - y0;
+
+  gimp_pixel_rgn_init(&rgn_img0, gimp_drawable_get(img0_layer_id), x0, y0, width, height, FALSE, FALSE);
+  gimp_pixel_rgn_init(&rgn_img1, gimp_drawable_get(img1_layer_id), x0, y0, width, height, FALSE, FALSE);
+  gimp_pixel_rgn_init(&rgn_mask, gimp_drawable_get(mask_layer_id), x0, y0, width, height, FALSE, FALSE);
 
 
-  /* Gets upper left and lower right coordinates,
-  * and layers number in the image */
-  gimp_drawable_mask_bounds(drawable->drawable_id, &x1, &y1, &x2, &y2);
-  width = x2 - x1;
-  height = y2 - y1;
-
-  channels = gimp_drawable_bpp(drawable->drawable_id);
-
-  /* Initialises two PixelRgns, one to read original data,
-  * and the other to write output data. That second one will
-  * be merged at the end by the call to
-  * gimp_drawable_merge_shadow() */
-//  gimp_pixel_rgn_init(&rgn_in, drawable, x1, y1, width, height, FALSE, FALSE);
-  gimp_pixel_rgn_init(&rgn_out, drawable, x1, y1, width, height, TRUE, TRUE);
-
-
-  gint num_layers = 0;
-  gint *layers = gimp_image_get_layers(image_ID, &num_layers);
-
-  fprintf(p_file, "x1 = %d, x2 = %d, y1 = %d, y2 = %d\n", x1, x2, y1, y2);
-  fprintf(p_file, "w = %d, h = %d, c = %d, num_layers = %d\n", width, height, channels, num_layers);
-  fprintf(p_file, "l0 = %d, l1 = %d, l2 = %d, l3 = %d, d = %d\n", layers[0], layers[1], layers[2], layers[3], drawable_ID);
-
-  gimp_pixel_rgn_init(&rgn_in0, gimp_drawable_get(layers[1]), x1, y1, width, height, FALSE, FALSE);
-  gimp_pixel_rgn_init(&rgn_in1, gimp_drawable_get(layers[2]), x1, y1, width, height, FALSE, FALSE);
-  gimp_pixel_rgn_init(&rgn_inmask, gimp_drawable_get(layers[3]), x1, y1, width, height, FALSE, FALSE);
+  //gint32 out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
+  //gint32 out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
+  gint32 out_layer_id = gimp_layer_new(img_id, "Blended", width, height, GIMP_RGB_IMAGE, 100.0, GIMP_NORMAL_MODE);
+  gimp_image_add_layer(img_id, out_layer_id, 0);
+  GimpDrawable *out_layer_drawable = gimp_drawable_get(out_layer_id);
+  gimp_pixel_rgn_init(&rgn_out, out_layer_drawable, x0, y0, width, height, TRUE, TRUE);
 
 
   guchar *img0 = g_new(guchar, channels * width * height);
@@ -167,26 +166,25 @@ static void blend(gint drawable_ID, gint image_ID) {
   guchar *mask = g_new(guchar, channels * width * height);
   guchar *out = g_new(guchar, channels * width * height);
 
-  gimp_pixel_rgn_get_rect(&rgn_in0, img0, x1, y1, width, height);
-  gimp_pixel_rgn_get_rect(&rgn_in1, img1, x1, y1, width, height);
-  gimp_pixel_rgn_get_rect(&rgn_inmask, mask, x1, y1, width, height);
+  gimp_pixel_rgn_get_rect(&rgn_img0, img0, x0, y0, width, height);
+  gimp_pixel_rgn_get_rect(&rgn_img1, img1, x0, y0, width, height);
+  gimp_pixel_rgn_get_rect(&rgn_mask, mask, x0, y0, width, height);
 
   mbb_blend(width, height, channels, kUint8, img0, img1, mask, out);
 
 //  memset(out, 128, channels * width * height);
 
-  gimp_pixel_rgn_set_rect(&rgn_out, out, x1, y1, width, height);
+  gimp_pixel_rgn_set_rect(&rgn_out, out, x0, y0, width, height);
 
   g_free(img0);
   g_free(img1);
   g_free(mask);
   g_free(out);
 
-//  if (i % 10 == 0)
-//    gimp_progress_update ((gdouble) (i - x1) / (gdouble) (x2 - x1));
+  gimp_drawable_flush(out_layer_drawable);
+  gimp_drawable_merge_shadow(out_layer_id, TRUE);
+  gimp_drawable_update(out_layer_id, x0, y0, width, height);
 
-  /*  Update the modified region */
-  gimp_drawable_flush(drawable);
-  gimp_drawable_merge_shadow(drawable->drawable_id, TRUE);
-  gimp_drawable_update(drawable->drawable_id, x1, y1, width, height);
+  fprintf(p_file, "x0 = %d, x1 = %d, y0 = %d, y1 = %d\n", x0, x1, y0, y1);
+  fprintf(p_file, "w = %d, h = %d, c = %d\n", width, height, channels);
 }
