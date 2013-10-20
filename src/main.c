@@ -1,12 +1,29 @@
+//  Copyright (C) 2013 Saulo A. Pessoa <saulopessoa@gmail.com>.
+//
+//  This file is part of MBB GIMP.
+//
+//  MBB GIMP is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Lesser General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  MBB GIMP is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+//  GNU Lesser General Public License for more details.
+//
+//  You should have received a copy of the GNU Lesser General Public License
+//  along with MBB GIMP. If not, see <http://www.gnu.org/licenses/>.
 
 #include <stdio.h>
 
 #include <libgimp/gimp.h>
 
 #include "mbb/mbb.h"
+#include "error.h"
 
-static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
-                  gint32 mask_layer_id, gint32 img_id);
+static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
+                      gint32 mask_layer_id, gint32 img_id);
 static void query(void);
 static void run(const gchar      *name,
                 gint              nparams,
@@ -94,7 +111,8 @@ static void run(const gchar      *name,
   drawable = gimp_drawable_get(param[2].data.d_drawable);
 
   if (run_mode != GIMP_RUN_NONINTERACTIVE) {
-    // g_message("Hello, world!\n");
+    //g_message("Hello, world!\n");
+    //gimp_message("Hello, world!\n");
     // TODO: Show gui to the user.
   }
 
@@ -114,7 +132,9 @@ static void run(const gchar      *name,
   gimp_progress_init("Blending...");
   gimp_progress_update(0.0);
 
-  blend(layers_ids[0], layers_ids[1], layers_ids[2], param[1].data.d_image);
+  if (!blend(layers_ids[0], layers_ids[1], layers_ids[2], param[1].data.d_image)) {
+    gimp_message(get_error_msg());
+  }
 
   gimp_progress_update(1.0);
 
@@ -125,10 +145,11 @@ static void run(const gchar      *name,
   fclose(p_file);
 }
 
-static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
-                  gint32 mask_layer_id, gint32 img_id) {
+static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
+                      gint32 mask_layer_id, gint32 img_id) {
 
-  gint         width, height, channels, temp_channels;
+  gint         width, height, channels,
+               temp_channels;
   gint         x0, y0, x1, y1,
                temp_x0, temp_y0, temp_x1, temp_y1;
   GimpPixelRgn rgn_img0, rgn_img1, rgn_mask, rgn_out;
@@ -140,10 +161,29 @@ static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_drawable_mask_bounds(img1_layer_id, &temp_x0, &temp_y0, &temp_x1, &temp_y1);
   temp_channels = gimp_drawable_bpp(img1_layer_id);
 
+  if (x0!=temp_x0 || x1!=temp_x1 || y0!=temp_y0 || y1!=temp_y1) {
+    set_error_msg("Layers of the input images have different boundaries size. Please, set equal boundaries size to continue.");
+    return FALSE;
+  }
+
+  if (channels!=temp_channels) {
+    set_error_msg("Layers of the input images have different number of channels. Please, set equal number of channels to continue.");
+    return FALSE;
+  }
+
   gimp_drawable_mask_bounds(mask_layer_id, &temp_x0, &temp_y0, &temp_x1, &temp_y1);
   temp_channels = gimp_drawable_bpp(mask_layer_id);
 
-  // TODO: Send an error if img0 attributes are different from img1 and mask.
+  if (x0!=temp_x0 || x1!=temp_x1 || y0!=temp_y0 || y1!=temp_y1) {
+    set_error_msg("Layers of the input images and of the mask have different boundaries size. Please, set equal boundaries size to continue.");
+    return FALSE;
+  }
+
+  if (channels!=temp_channels) {
+    set_error_msg("Layers of the input images and of the mask have different number of channels. Please, set equal number of channels to continue.");
+    return FALSE;
+  }
+
 
   width = x1 - x0;
   height = y1 - y0;
@@ -187,4 +227,6 @@ static void blend(gint32 img0_layer_id, gint32 img1_layer_id,
 
   fprintf(p_file, "x0 = %d, x1 = %d, y0 = %d, y1 = %d\n", x0, x1, y0, y1);
   fprintf(p_file, "w = %d, h = %d, c = %d\n", width, height, channels);
+
+  return TRUE;
 }
