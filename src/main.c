@@ -63,13 +63,13 @@ static void query(void) {
   };
 
   gimp_install_procedure(
-    "plug-in-mbb",
+    "plug-in-mbb-blend",
     "Implements a multi-band blending technique",
     "Implements a multi-band blending technique...<write more>",
     "Saulo A. Pessoa <saulopessoa@gmail.com>",
     "Saulo A. Pessoa",
     "2013",
-    "Multi-Band Blending...",
+    "Blend...",
     "RGB*, GRAY*",
     GIMP_PLUGIN,
     G_N_ELEMENTS(args),
@@ -77,7 +77,7 @@ static void query(void) {
     args,
     NULL);
 
-  gimp_plugin_menu_register("plug-in-mbb", "<Image>/Filters/Misc");
+  gimp_plugin_menu_register("plug-in-mbb-blend", "<Image>/Filters/Multi-Band Blending");
 }
 
 FILE *p_file;
@@ -87,6 +87,83 @@ gboolean layersConstraintFunc(gint32 image_id, gint32 item_id, gpointer data) {
     return TRUE;
   else
     return FALSE;
+}
+
+gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
+             gint *mask_layer_id) {
+
+  gint tmp_img0_layer_id, tmp_img1_layer_id, tmp_mask_layer_id;
+
+  gimp_ui_init("mbb", FALSE);
+  GtkWidget *dialog = gimp_dialog_new("Multi-Band Blending - Blend",
+                                      "Multi-Band Blending - Blend", NULL, 0,
+                                      /*gimp_standard_help_func*/NULL,
+                                      "plug-in-mbb-blend",
+                                      GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                      GTK_STOCK_OK,     GTK_RESPONSE_OK,
+                                      NULL);
+  gtk_window_set_resizable(GTK_DIALOG(dialog), FALSE);
+
+  GtkWidget *main_vbox = gtk_hbox_new(FALSE, 6);
+  gtk_container_add (GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), main_vbox);
+  gtk_widget_show(main_vbox);
+
+  GtkWidget *img0_label = gtk_label_new_with_mnemonic("_Image 1:");
+  gtk_widget_show(img0_label);
+  gtk_box_pack_start(GTK_BOX(main_vbox), img0_label, FALSE, FALSE, 6);
+  gtk_label_set_justify(GTK_LABEL(img0_label), GTK_JUSTIFY_RIGHT);
+
+  GtkWidget *combo_img0 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  //GtkWidget *combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
+  gtk_widget_show(combo_img0);
+  gtk_box_pack_start(GTK_BOX(main_vbox), combo_img0, FALSE, FALSE, 6);
+
+  GtkWidget *img1_label = gtk_label_new_with_mnemonic("_Image 2:");
+  gtk_widget_show(img1_label);
+  gtk_box_pack_start(GTK_BOX(main_vbox), img1_label, FALSE, FALSE, 6);
+  gtk_label_set_justify(GTK_LABEL(img1_label), GTK_JUSTIFY_RIGHT);
+
+  GtkWidget *combo_img1 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  gtk_widget_show(combo_img1);
+  gtk_box_pack_start(GTK_BOX(main_vbox), combo_img1, FALSE, FALSE, 6);
+
+  GtkWidget *mask_label = gtk_label_new_with_mnemonic("_Mask:");
+  gtk_widget_show(mask_label);
+  gtk_box_pack_start(GTK_BOX(main_vbox), mask_label, FALSE, FALSE, 6);
+  gtk_label_set_justify(GTK_LABEL(mask_label), GTK_JUSTIFY_RIGHT);
+
+  GtkWidget *combo_mask = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  gtk_widget_show(combo_mask);
+  gtk_box_pack_start(GTK_BOX(main_vbox), combo_mask, FALSE, FALSE, 6);
+
+  while (TRUE) {
+    gint response;
+
+    gtk_widget_show(dialog);
+    response = gimp_dialog_run(GIMP_DIALOG(dialog));
+
+    if (response == GTK_RESPONSE_OK) {
+        gimp_int_combo_box_get_active(combo_img0, &tmp_img0_layer_id);
+        gimp_int_combo_box_get_active(combo_img1, &tmp_img1_layer_id);
+        gimp_int_combo_box_get_active(combo_mask, &tmp_mask_layer_id);
+
+        if (tmp_img0_layer_id != tmp_img1_layer_id &&
+            tmp_img0_layer_id != tmp_mask_layer_id &&
+            tmp_img1_layer_id != tmp_mask_layer_id) {
+
+          *img0_layer_id = tmp_img0_layer_id;
+          *img1_layer_id = tmp_img1_layer_id;
+          *mask_layer_id = tmp_mask_layer_id;
+
+          return TRUE;
+        } else {
+          gimp_message("Each layer can be used only once. Please, select a different layer for...");
+        }
+    } else if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_CLOSE) {
+        gtk_widget_destroy(dialog);
+        return FALSE;
+    }
+  }
 }
 
 static void run(const gchar      *name,
@@ -100,9 +177,12 @@ static void run(const gchar      *name,
   static GimpParam values[1];
   GimpPDBStatusType status = GIMP_PDB_SUCCESS;
   GimpRunMode run_mode;
-  GimpDrawable *drawable;
+//  GimpDrawable *drawable;
+  gint img_id;
   gint num_layers;
   gint *layers_ids;
+  gint img0_layer_id, img1_layer_id, mask_layer_id;
+
 
   /* Setting mandatory output values */
   *nreturn_vals = 1;
@@ -116,105 +196,34 @@ static void run(const gchar      *name,
   run_mode = param[0].data.d_int32;
 
   /*  Get the specified drawable  */
-  drawable = gimp_drawable_get(param[2].data.d_drawable);
+//  drawable = gimp_drawable_get(param[2].data.d_drawable);
+  img_id = param[1].data.d_image;
 
-  layers_ids = gimp_image_get_layers(param[1].data.d_image, &num_layers);
+  layers_ids = gimp_image_get_layers(img_id, &num_layers);
 
-  gint img0_selected_id;
-  gint img1_selected_id;
-  gint mask_selected_id;
+  if (num_layers < 3) {
+    gimp_message("Blend function requires at least three layers.");
+    return;
+  }
+
   if (run_mode != GIMP_RUN_NONINTERACTIVE) {
     //g_message("Hello, world!\n");
     //gimp_message("Hello, world!\n");
 
-    gimp_ui_init("myblur", FALSE);
-
-    GtkWidget *dialog = gimp_dialog_new("My blur", "myblur", NULL, 0,
-                                        /*gimp_standard_help_func*/NULL,
-                                        "plug-in-myblur",
-                                        GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                        GTK_STOCK_OK,     GTK_RESPONSE_OK,
-                                        NULL);
-
-    gtk_window_set_resizable(GTK_DIALOG(dialog), FALSE);
-
-    GtkWidget *main_vbox = gtk_hbox_new(FALSE, 6);
-    gtk_container_add (GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), main_vbox);
-    gtk_widget_show(main_vbox);
-
-    GtkWidget *img0_label = gtk_label_new_with_mnemonic("_Image 1:");
-    gtk_widget_show(img0_label);
-    gtk_box_pack_start(GTK_BOX(main_vbox), img0_label, FALSE, FALSE, 6);
-    gtk_label_set_justify(GTK_LABEL(img0_label), GTK_JUSTIFY_RIGHT);
-
-    GtkWidget *combo_img0 = gimp_layer_combo_box_new(layersConstraintFunc, &param[1].data.d_image);
-    //GtkWidget *combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
-    gtk_widget_show(combo_img0);
-    gtk_box_pack_start(GTK_BOX(main_vbox), combo_img0, FALSE, FALSE, 6);
-
-    GtkWidget *img1_label = gtk_label_new_with_mnemonic("_Image 2:");
-    gtk_widget_show(img1_label);
-    gtk_box_pack_start(GTK_BOX(main_vbox), img1_label, FALSE, FALSE, 6);
-    gtk_label_set_justify(GTK_LABEL(img1_label), GTK_JUSTIFY_RIGHT);
-
-    GtkWidget *combo_img1 = gimp_layer_combo_box_new(layersConstraintFunc, &param[1].data.d_image);
-    gtk_widget_show(combo_img1);
-    gtk_box_pack_start(GTK_BOX(main_vbox), combo_img1, FALSE, FALSE, 6);
-
-    GtkWidget *mask_label = gtk_label_new_with_mnemonic("_Mask:");
-    gtk_widget_show(mask_label);
-    gtk_box_pack_start(GTK_BOX(main_vbox), mask_label, FALSE, FALSE, 6);
-    gtk_label_set_justify(GTK_LABEL(mask_label), GTK_JUSTIFY_RIGHT);
-
-    GtkWidget *combo_mask = gimp_layer_combo_box_new(layersConstraintFunc, &param[1].data.d_image);
-    gtk_widget_show(combo_mask);
-    gtk_box_pack_start(GTK_BOX(main_vbox), combo_mask, FALSE, FALSE, 6);
-
-
-    gtk_widget_show(dialog);
-
-    gboolean run = (gimp_dialog_run(GIMP_DIALOG(dialog)) == GTK_RESPONSE_OK);
-
-//    gint img0_selected_id;
-    gimp_int_combo_box_get_active(combo_img0, &img0_selected_id);
-
-//    gint img1_selected_id;
-    gimp_int_combo_box_get_active(combo_img1, &img1_selected_id);
-
-//    gint mask_selected_id;
-    gimp_int_combo_box_get_active(combo_mask, &mask_selected_id);
-
-//    fprintf(p_file, "Img0 selected = %d, id = %d\n", img0_selected_id, layers_ids[3]);
-
-    gtk_widget_destroy(dialog);
+    gui(img_id, &img0_layer_id, &img1_layer_id, &mask_layer_id);
   }
-
-  /* Let's time blur
-   *mset
-   *   GTimer timer = g_timer_new time ();
-   */
-
-  //blur (drawable);
-
-  /*   g_print ("blur() took %g seconds.\n", g_timer_elapsed (timer));
-   *   g_timer_destroy (timer);
-   */
 
   gimp_progress_init("Blending...");
   gimp_progress_update(0.0);
 
-//   if (!blend(layers_ids[0], layers_ids[1], layers_ids[2], param[1].data.d_image)) {
-//     gimp_message(get_error_msg());
-//   }
-
-   if (!blend(img0_selected_id, img1_selected_id, mask_selected_id, param[1].data.d_image)) {
+   if (!blend(img0_layer_id, img1_layer_id, mask_layer_id, img_id)) {
      gimp_message(get_error_msg());
    }
 
   gimp_progress_update(1.0);
 
   gimp_displays_flush();
-  gimp_drawable_detach(drawable);
+//  gimp_drawable_detach(drawable);
 
   fprintf(p_file, "num_layers = %d\n", num_layers);
   fclose(p_file);
