@@ -96,12 +96,15 @@ gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
 
   gimp_ui_init("mbb", FALSE);
   GtkWidget *dialog = gimp_dialog_new("Multi-Band Blending - Blend",
-                                      "Multi-Band Blending - Blend", NULL, 0,
+                                      "Multi-Band Blending - Blend", NULL,
+                                       /*GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT*/0,
                                       /*gimp_standard_help_func*/NULL,
                                       "plug-in-mbb-blend",
                                       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                       GTK_STOCK_OK,     GTK_RESPONSE_OK,
                                       NULL);
+  gimp_window_set_transient((GtkWindow*)dialog);
+
   gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 
   GtkWidget *main_vbox = gtk_hbox_new(FALSE, 6);
@@ -136,8 +139,6 @@ gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
   gtk_widget_show(combo_mask);
   gtk_box_pack_start(GTK_BOX(main_vbox), combo_mask, FALSE, FALSE, 6);
 
-//  gimp_window_set_transient(dialog);
-
   while (TRUE) {
     gint response;
 
@@ -161,7 +162,7 @@ gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
         } else {
           gimp_message("Each layer can be used only once. Please, select a different layer for...");
         }
-    } else if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_CLOSE) {
+    } else if (response == GTK_RESPONSE_CANCEL || response == GTK_RESPONSE_DELETE_EVENT) {
         gtk_widget_destroy(dialog);
         return FALSE;
     }
@@ -233,7 +234,7 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
                       gint32 mask_layer_id, gint32 img_id) {
 
   gint         width, height, channels, type,
-               /*tmp_channels, */tmp_type;
+               tmp_type;
   gint         x0, y0, x1, y1,
                tmp_x0, tmp_y0, tmp_x1, tmp_y1;
   GimpPixelRgn rgn_img0, rgn_img1, rgn_mask, rgn_out;
@@ -244,7 +245,6 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   type = gimp_drawable_type(img0_layer_id);
 
   gimp_drawable_mask_bounds(img1_layer_id, &tmp_x0, &tmp_y0, &tmp_x1, &tmp_y1);
-//  tmp_channels = gimp_drawable_bpp(img1_layer_id);
   tmp_type = gimp_drawable_type(img1_layer_id);
 
   if (x0!=tmp_x0 || x1!=tmp_x1 || y0!=tmp_y0 || y1!=tmp_y1) {
@@ -252,28 +252,19 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
     return FALSE;
   }
 
-//   if (channels!=tmp_channels) {
-//     set_error_msg("Layers of the input images have different number of channels. Please, set equal number of channels to continue.");
-//     return FALSE;
-//   }
   if (type!=tmp_type) {
     set_error_msg("Layers of the input images have different types. Please, choose layers with the same type.");
     return FALSE;
   }
 
   gimp_drawable_mask_bounds(mask_layer_id, &tmp_x0, &tmp_y0, &tmp_x1, &tmp_y1);
-//  tmp_channels = gimp_drawable_bpp(mask_layer_id);
-  tmp_type = gimp_drawable_bpp(mask_layer_id);
+  tmp_type = gimp_drawable_type(mask_layer_id);
 
   if (x0!=tmp_x0 || x1!=tmp_x1 || y0!=tmp_y0 || y1!=tmp_y1) {
     set_error_msg("Layers of the input images and of the mask have different boundaries size. Please, set equal boundaries size to continue.");
     return FALSE;
   }
 
-//   if (channels!=tmp_channels) {
-//     set_error_msg("Layers of the input images and of the mask have different number of channels. Please, set equal number of channels to continue.");
-//     return FALSE;
-//   }
   if (type!=tmp_type) {
     set_error_msg("Layers of the input images and of the mask have different types. Please, choose layers with the same type.");
     return FALSE;
@@ -286,14 +277,12 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_pixel_rgn_init(&rgn_img1, gimp_drawable_get(img1_layer_id), x0, y0, width, height, FALSE, FALSE);
   gimp_pixel_rgn_init(&rgn_mask, gimp_drawable_get(mask_layer_id), x0, y0, width, height, FALSE, FALSE);
 
-
   //gint32 out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
   //gint32 out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
   gint32 out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type/*GIMP_RGB_IMAGE*/, 100.0, GIMP_NORMAL_MODE);
   gimp_image_add_layer(img_id, out_layer_id, 0);
   GimpDrawable *out_layer_drawable = gimp_drawable_get(out_layer_id);
   gimp_pixel_rgn_init(&rgn_out, out_layer_drawable, x0, y0, width, height, TRUE, TRUE);
-
 
   guchar *img0 = g_new(guchar, channels * width * height);
   guchar *img1 = g_new(guchar, channels * width * height);
@@ -305,8 +294,6 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_pixel_rgn_get_rect(&rgn_mask, mask, x0, y0, width, height);
 
   mbb_blend(width, height, channels, kUint8, img0, img1, mask, out);
-
-//  memset(out, 128, channels * width * height);
 
   gimp_pixel_rgn_set_rect(&rgn_out, out, x0, y0, width, height);
 
