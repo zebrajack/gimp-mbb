@@ -325,25 +325,14 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   width = x1 - x0;
   height = y1 - y0;
 
+  gimp_image_undo_group_start(img_id);
+
   gimp_pixel_rgn_init(&rgn_img0, gimp_drawable_get(img0_layer_id), x0, y0,
                       width, height, FALSE, FALSE);
   gimp_pixel_rgn_init(&rgn_img1, gimp_drawable_get(img1_layer_id), x0, y0,
                       width, height, FALSE, FALSE);
   gimp_pixel_rgn_init(&rgn_mask, gimp_drawable_get(mask_layer_id), x0, y0,
                       width, height, FALSE, FALSE);
-
-  // Create new layer with the same characteristics to place the result.
-  //out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
-  //out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
-//  out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type,
-//                                100.0, GIMP_NORMAL_MODE);
-  out_layer_id = gimp_layer_new(img_id, "Blended", gimp_drawable_width(img_id),
-                                gimp_drawable_height(img_id), type,
-                                100.0, GIMP_NORMAL_MODE);
-  gimp_image_add_layer(img_id, out_layer_id, 0);
-  out_layer_drawable = gimp_drawable_get(out_layer_id);
-  gimp_pixel_rgn_init(&rgn_out, out_layer_drawable, x0, y0, width, height,
-                      TRUE, TRUE);
 
   img0_buf = g_new(guchar, channels * width * height);
   img1_buf = g_new(guchar, channels * width * height);
@@ -358,6 +347,19 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   mbb_blend(width, height, channels, kUint8, img0_buf, img1_buf, mask_buf,
             out_buf);
 
+  // Create new layer with the same characteristics to place the result.
+  //out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
+  //out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
+//  out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type,
+//                                100.0, GIMP_NORMAL_MODE);
+  out_layer_id = gimp_layer_new(img_id, "Blended", gimp_drawable_width(img_id),
+                                gimp_drawable_height(img_id), type,
+                                100.0, GIMP_NORMAL_MODE);
+  gimp_image_add_layer(img_id, out_layer_id, 0);
+  out_layer_drawable = gimp_drawable_get(out_layer_id);
+  gimp_pixel_rgn_init(&rgn_out, out_layer_drawable, x0, y0, width, height,
+                      TRUE, TRUE);
+
   // Write the output buffer to the new created layer.
   gimp_pixel_rgn_set_rect(&rgn_out, out_buf, x0, y0, width, height);
 
@@ -369,6 +371,8 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_drawable_flush(out_layer_drawable);
   gimp_drawable_merge_shadow(out_layer_id, TRUE);
   gimp_drawable_update(out_layer_id, x0, y0, width, height);
+
+  gimp_image_undo_group_end(img_id);
 
   return TRUE;
 }
