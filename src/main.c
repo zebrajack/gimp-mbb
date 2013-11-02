@@ -28,7 +28,9 @@ FILE *p_file;
 #include "mbb/mbb.h"
 #include "error.h"
 
-static gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
+static gboolean gui(gint32 img_id, gint init_img0_layer_id,
+                    gint init_img1_layer_id, gint init_mask_layer_id,
+                    gint *img0_layer_id, gint *img1_layer_id,
                     gint *mask_layer_id);
 static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
                       gint32 mask_layer_id, gint32 img_id);
@@ -105,7 +107,7 @@ static void run(const gchar      *name,
 //  GimpDrawable *drawable;
   gint img_id;
   gint num_layers;
-//  gint *layers_ids;
+  gint *layers_ids;
   gint img0_layer_id, img1_layer_id, mask_layer_id;
 
   // Setting mandatory output values.
@@ -121,7 +123,15 @@ static void run(const gchar      *name,
 //  drawable = gimp_drawable_get(param[2].data.d_drawable);
   img_id = param[1].data.d_image;
 
-  /*layers_ids = */gimp_image_get_layers(img_id, &num_layers);
+  layers_ids = gimp_image_get_layers(img_id, &num_layers);
+
+  #ifdef DEBUG_LOG
+  fprintf(p_file, "num_layers = %d\n", num_layers);
+  gint i;
+  for (i = 0; i < num_layers; ++i)
+    fprintf(p_file, "layer[%d] = %d\n", i, layers_ids[i]);
+  fclose(p_file);
+  #endif
 
   // Blend function requires at least three layers to work.
   if (num_layers < 3) {
@@ -130,7 +140,8 @@ static void run(const gchar      *name,
   }
 
   if (run_mode != GIMP_RUN_NONINTERACTIVE) {
-    if (!gui(img_id, &img0_layer_id, &img1_layer_id, &mask_layer_id))
+    if (!gui(img_id, layers_ids[0], layers_ids[1], layers_ids[2],
+             &img0_layer_id, &img1_layer_id, &mask_layer_id))
       return;
   }
 
@@ -145,11 +156,6 @@ static void run(const gchar      *name,
 
   gimp_displays_flush();
 //  gimp_drawable_detach(drawable);
-
-  #ifdef DEBUG_LOG
-  fprintf(p_file, "num_layers = %d\n", num_layers);
-  fclose(p_file);
-  #endif
 }
 
 /* Filter the layers to be exhibited by gui. */
@@ -164,8 +170,10 @@ static gboolean layersConstraintFunc(gint32 image_id, gint32 item_id,
 }
 
 /* Plugin gui. */
-static gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
-             gint *mask_layer_id) {
+static gboolean gui(gint32 img_id, gint init_img0_layer_id,
+                    gint init_img1_layer_id, gint init_mask_layer_id,
+                    gint *img0_layer_id, gint *img1_layer_id,
+                    gint *mask_layer_id) {
 
   GtkWidget *dialog, *main_vbox, *img0_label, *img1_label, *mask_label,
             *combo_img0, *combo_img1, *combo_mask;
@@ -198,6 +206,8 @@ static gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
 
   combo_img0 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
   //combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
+  gimp_int_combo_box_set_active((GimpIntComboBox*)combo_img0,
+                                init_img0_layer_id);
   gtk_widget_show(combo_img0);
   gtk_box_pack_start(GTK_BOX(main_vbox), combo_img0, FALSE, FALSE, 6);
 
@@ -207,6 +217,8 @@ static gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
   gtk_label_set_justify(GTK_LABEL(img1_label), GTK_JUSTIFY_RIGHT);
 
   combo_img1 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  gimp_int_combo_box_set_active((GimpIntComboBox*)combo_img1,
+                                init_img1_layer_id);
   gtk_widget_show(combo_img1);
   gtk_box_pack_start(GTK_BOX(main_vbox), combo_img1, FALSE, FALSE, 6);
 
@@ -216,6 +228,8 @@ static gboolean gui(gint32 img_id, gint *img0_layer_id, gint *img1_layer_id,
   gtk_label_set_justify(GTK_LABEL(mask_label), GTK_JUSTIFY_RIGHT);
 
   combo_mask = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  gimp_int_combo_box_set_active((GimpIntComboBox*)combo_mask,
+                                init_mask_layer_id);
   gtk_widget_show(combo_mask);
   gtk_box_pack_start(GTK_BOX(main_vbox), combo_mask, FALSE, FALSE, 6);
 
