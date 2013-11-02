@@ -130,7 +130,6 @@ static void run(const gchar      *name,
   gint i;
   for (i = 0; i < num_layers; ++i)
     fprintf(p_file, "layer[%d] = %d\n", i, layers_ids[i]);
-  fclose(p_file);
   #endif
 
   // Blend function requires at least three layers to work.
@@ -156,6 +155,10 @@ static void run(const gchar      *name,
 
   gimp_displays_flush();
 //  gimp_drawable_detach(drawable);
+
+  #ifdef DEBUG_LOG
+  fclose(p_file);
+  #endif
 }
 
 /* Filter the layers to be exhibited by gui. */
@@ -288,6 +291,11 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   channels = gimp_drawable_bpp(img0_layer_id);
   type = gimp_drawable_type(img0_layer_id);
 
+  #ifdef DEBUG_LOG
+  fprintf(p_file, "x0 = %d, x1 = %d, y0 = %d, y1 = %d\n", x0, x1, y0, y1);
+  fprintf(p_file, "w = %d, h = %d, c = %d\n", x1-x0, y1-y0, channels);
+  #endif
+
   gimp_drawable_mask_bounds(img1_layer_id, &tmp_x0, &tmp_y0, &tmp_x1, &tmp_y1);
   tmp_type = gimp_drawable_type(img1_layer_id);
 
@@ -327,7 +335,10 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   // Create new layer with the same characteristics to place the result.
   //out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
   //out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
-  out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type,
+//  out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type,
+//                                100.0, GIMP_NORMAL_MODE);
+  out_layer_id = gimp_layer_new(img_id, "Blended", gimp_drawable_width(img_id),
+                                gimp_drawable_height(img_id), type,
                                 100.0, GIMP_NORMAL_MODE);
   gimp_image_add_layer(img_id, out_layer_id, 0);
   out_layer_drawable = gimp_drawable_get(out_layer_id);
@@ -358,11 +369,6 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_drawable_flush(out_layer_drawable);
   gimp_drawable_merge_shadow(out_layer_id, TRUE);
   gimp_drawable_update(out_layer_id, x0, y0, width, height);
-
-  #ifdef DEBUG_LOG
-  fprintf(p_file, "x0 = %d, x1 = %d, y0 = %d, y1 = %d\n", x0, x1, y0, y1);
-  fprintf(p_file, "w = %d, h = %d, c = %d\n", width, height, channels);
-  #endif
 
   return TRUE;
 }
