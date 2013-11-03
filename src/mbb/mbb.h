@@ -27,6 +27,8 @@ typedef enum {
   // TODO(saulo): Add more data types here...
 } mbb_DataTypes;
 
+typedef void (*mbb_CallBackProgressFunc)(float progress);
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +39,8 @@ same width, height, and channels as the input images. Blended image data
 buffer must be allocated by the client. */
 void *mbb_blend(int width, int height, int channels, mbb_DataTypes type,
                 const void *img0_data, const void *img1_data,
-                const void *mask_data, void *o_img_data);
+                const void *mask_data, void *o_img_data,
+                mbb_CallBackProgressFunc progress);
 
 #ifdef __cplusplus
 }

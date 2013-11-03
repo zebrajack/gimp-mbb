@@ -201,7 +201,9 @@ static ImagesPyramid *build_L(const ImagesPyramid *G, ImagesPyramid *L) {
 }
 
 /* Blend two images according to a mask. */
-static Image *blend_imgs(const Image *img0, const Image *img1, const Image *mask, Image *out) {
+static Image *blend_imgs(const Image *img0, const Image *img1,
+                         const Image *mask, Image *out,
+                         mbb_CallBackProgressFunc progress) {
   ImagesPyramid G_img0, L_img0,  // Img0 gaussian and laplacian pyramid
                 G_img1, L_img1,  // Img1 gaussian and laplacian pyramid
                 G_mask,          // Mask laplacian pyramid
@@ -212,10 +214,16 @@ static Image *blend_imgs(const Image *img0, const Image *img1, const Image *mask
   build_G(img0, &G_img0);
   build_L(&G_img0, &L_img0);
 
+  if (progress) progress(0.35);
+
   build_G(img1, &G_img1);
   build_L(&G_img1, &L_img1);
 
+  if (progress) progress(0.55);
+
   build_G(mask, &G_mask);
+
+  if (progress) progress(0.65);
 
   images_pyramid_ctor(&L_blended, L_img0.levels);
 
@@ -250,6 +258,8 @@ static Image *blend_imgs(const Image *img0, const Image *img1, const Image *mask
     L_blended.data[i] = Li_blended;
   }
 
+  if (progress) progress(0.85);
+
   // Restore blended image from its laplacian pyramid
   image_deepcopy(&L_blended.data[L_blended.levels-1], &blended_img);
   for (i = L_blended.levels - 2; i >= 0; --i) {
@@ -270,6 +280,8 @@ static Image *blend_imgs(const Image *img0, const Image *img1, const Image *mask
   images_pyramid_dtor(&L_img1);
   images_pyramid_dtor(&G_mask);
   images_pyramid_dtor(&L_blended);
+
+  if (progress) progress(0.95);
 
   *out = blended_img;
   return out;
@@ -349,18 +361,24 @@ static void *image_to_data(const Image *img, int width, int height,
 // 
 void *mbb_blend(int width, int height, int channels, mbb_DataTypes type,
                 const void *img0_data, const void *img1_data,
-                const void *mask_data, void *o_img_data) {
+                const void *mask_data, void *o_img_data,
+                mbb_CallBackProgressFunc progress) {
   Image img0, img1, mask;
   Image blended;
+  if (progress) progress(0.0);
 
   data_to_image(width, height, channels, img0_data, &img0, 1);
+  if (progress) progress(0.05);
   data_to_image(width, height, channels, img1_data, &img1, 1);
+  if (progress) progress(0.1);
   data_to_image(width, height, channels, mask_data, &mask, 1.0f/255);
+  if (progress) progress(0.15);
 
-  blend_imgs(&img0, &img1, &mask, &blended);
+  blend_imgs(&img0, &img1, &mask, &blended, progress);
 
   image_to_data(&blended, width, height, channels, o_img_data);
 
   image_dtor(&blended);
+  if (progress) progress(1.0);
   return o_img_data;
 }

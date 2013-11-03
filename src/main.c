@@ -145,13 +145,13 @@ static void run(const gchar      *name,
   }
 
   gimp_progress_init("Blending...");
-  gimp_progress_update(0.0);
+//  gimp_progress_update(0.0);
 
   if (!blend(img0_layer_id, img1_layer_id, mask_layer_id, img_id)) {
     gimp_message(get_error_msg());
   }
 
-  gimp_progress_update(1.0);
+//  gimp_progress_update(1.0);
 
   gimp_displays_flush();
 //  gimp_drawable_detach(drawable);
@@ -159,6 +159,10 @@ static void run(const gchar      *name,
   #ifdef DEBUG_LOG
   fclose(p_file);
   #endif
+}
+
+void callback_progress_func(float progress) {
+  gimp_progress_update(progress);
 }
 
 /* Filter the layers to be exhibited by gui. */
@@ -346,7 +350,7 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_pixel_rgn_get_rect(&rgn_mask, mask_buf, x0, y0, width, height);
 
   mbb_blend(width, height, channels, kUint8, img0_buf, img1_buf, mask_buf,
-            out_buf);
+            out_buf, callback_progress_func);
 
   // Create new layer with the same characteristics to place the result.
   //out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
