@@ -259,6 +259,7 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
           *img1_layer_id = tmp_img1_layer_id;
           *mask_layer_id = tmp_mask_layer_id;
 
+          gtk_widget_destroy(dialog);
           return TRUE;
         } else {
           gimp_message("Each layer can be used only once. Please, select a different layer for...");
