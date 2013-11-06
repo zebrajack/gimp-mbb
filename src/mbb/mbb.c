@@ -55,7 +55,8 @@ static mbb_real *sample_b(const Image *img, int w, int h, mbb_real *out) {
   }
   if (h < 0 && w >= img->width) {
     color_muls(img->channels, sample(img, img->width-1, 0), 2, tmp_buf0);
-    return color_sub(img->channels, tmp_buf0, sample(img, 2*img->width-w-1, -h),out);
+    return color_sub(img->channels, tmp_buf0, sample(img, 2*img->width-w-1, -h),
+                     out);
   }
   if (h >= img->height && w >= img->width) {
     color_muls(img->channels, sample(img, img->width-1, img->height-1), 2,
@@ -65,7 +66,8 @@ static mbb_real *sample_b(const Image *img, int w, int h, mbb_real *out) {
   }
   if (h >= img->height && w < 0) {
     color_muls(img->channels, sample(img, 0, img->height-1), 2, tmp_buf0);
-    return color_sub(img->channels, tmp_buf0, sample(img,-w, 2*img->height-h-1),out);
+    return color_sub(img->channels, tmp_buf0, sample(img,-w, 2*img->height-h-1),
+                     out);
   }
 
   // Image edges
@@ -79,11 +81,13 @@ static mbb_real *sample_b(const Image *img, int w, int h, mbb_real *out) {
   }
   if (h >= img->height) {
     color_muls(img->channels, sample(img, w, img->height-1), 2, tmp_buf0);
-    return color_sub(img->channels, tmp_buf0, sample(img, w, 2*img->height-h-1),out);
+    return color_sub(img->channels, tmp_buf0, sample(img, w, 2*img->height-h-1),
+                     out);
   }
   if (w >= img->width) {
     color_muls(img->channels, sample(img, img->width-1, h), 2, tmp_buf0);
-    return color_sub(img->channels, tmp_buf0, sample(img, 2*img->width-w-1, h), out);
+    return color_sub(img->channels, tmp_buf0, sample(img, 2*img->width-w-1, h),
+                     out);
   }
 
   return color_copy(img->channels, sample(img, w, h), out);
@@ -134,7 +138,8 @@ static Image *expand(const Image *img, Image *expanded_img) {
             mbb_real tmp_buf0[mbb_kMaxChannels];
             mbb_real tmp_buf1[mbb_kMaxChannels];
 
-            color_muls(img->channels, sample_b(img, (wi+ni)/2, (hi+mi)/2, tmp_buf0),
+            color_muls(img->channels,
+                       sample_b(img, (wi+ni)/2, (hi+mi)/2, tmp_buf0),
                        weight2D(mi, ni), tmp_buf1);
 
             color_add(expanded_img->channels, sampled, tmp_buf1, sampled);
@@ -151,7 +156,7 @@ static Image *expand(const Image *img, Image *expanded_img) {
 /* Evaluate the number of levels a pyramid will have. It is determined by the
 largest image dimension. */
 static int eval_max_level(const Image *img) {
-  int smaller_dimension = smaller(img->width, img->height) - 1;
+  int smaller_dimension = math_smaller(img->width, img->height) - 1;
   int tmp_shift = smaller_dimension;
   int counter = 0;
 
@@ -267,7 +272,8 @@ static Image *blend_imgs(const Image *img0, const Image *img1,
     expand(&blended_img, &expanded_img);
 
     image_dtor(&blended_img);
-    image_ctor(&blended_img, expanded_img.width, expanded_img.height, expanded_img.channels);
+    image_ctor(&blended_img, expanded_img.width, expanded_img.height,
+               expanded_img.channels);
 
     image_add(&L_blended.data[i], &expanded_img, &blended_img);
 
@@ -289,8 +295,8 @@ static Image *blend_imgs(const Image *img0, const Image *img1,
 
 /* Evaluate a suitable size for a given dimenstion of the input image.
 It is necessary because multi-band operations can only be performed in
-images with sizes such as: n^2+1, for n >= 0. In order to reduce the loss
-of information, it will always be bigger than or equal the original dimension. */
+images with sizes such as: n^2+1, for n >= 0. In order to reduce the loss of
+information, it will always be bigger than or equal the original dimension. */
 static int eval_scaled_dimension(int v) {
   int tmp_shift = v-2;
   int counter = 0;
@@ -318,10 +324,10 @@ static Image *data_to_image(int width, int height, int channels,
 
   for (hi = 0; hi < img->height; ++hi) {
     float hin = hi/(float)img->height + 1.0f/(2*img->height);
-    int his = ceil(height*hin);
+    int his = math_floor(height*hin);
     for (wi = 0; wi < img->width; ++wi) {
       float win = wi/(float)img->width + 1.0f/(2*img->width);
-      int wis = ceil(width*win);
+      int wis = math_floor(width*win);
 
       mbb_real *sampled = sample(img, wi, hi);
       int ci;
@@ -342,16 +348,16 @@ static void *image_to_data(const Image *img, int width, int height,
 
   for (hi = 0; hi < height; ++hi) {
     float hin = hi/(float)height + 1.0f/(2*height);
-    int his = ceil(img->height*hin);
+    int his = math_floor(img->height*hin);
     for (wi = 0; wi < width; ++wi) {
       float win = wi/(float)width + 1.0f/(2*width);
-      int wis = ceil(img->width*win);
+      int wis = math_floor(img->width*win);
 
       mbb_real *sampled = sample(img, wis, his);
       int ci;
       for (ci = 0; ci < channels; ++ci)
         ((mbb_uint8*)o_img_data)[(hi*width + wi)*channels + ci] =
-          real_to_uint8(sampled[ci]);
+          math_real_2_uint8(sampled[ci]);
     }
   }
 

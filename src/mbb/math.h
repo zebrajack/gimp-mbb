@@ -21,17 +21,17 @@
 #include "prerequisites.h"
 
 /*  */
-int smaller(int a, int b) {
+int math_smaller(int a, int b) {
   return (a < b ? a : b);
 }
 
 /*  */
-int ceil(mbb_real a) {
+int math_floor(mbb_real a) {
   return (int)a;
 }
 
 /*  */
-mbb_uint8 real_to_uint8(mbb_real v) {
+mbb_uint8 math_real_2_uint8(mbb_real v) {
   if (v > 255)
     return 255;
   else if (v < 0)

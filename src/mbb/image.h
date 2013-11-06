@@ -39,13 +39,17 @@ mbb_real *sample(const Image *img, int w, int h);
 /* Copy color to output. */
 mbb_real *color_copy(int channels, const mbb_real *a, mbb_real *out);
 /* Subtract colors (channel-by-channel) and place result in output. */
-mbb_real *color_sub(int channels, const mbb_real *a, const mbb_real *b, mbb_real *out);
+mbb_real *color_sub(int channels, const mbb_real *a, const mbb_real *b,
+                    mbb_real *out);
 /* Add colors (channel-by-channel) and place result in output. */
-mbb_real *color_add(int channels, const mbb_real *a, const mbb_real *b, mbb_real *out);
+mbb_real *color_add(int channels, const mbb_real *a, const mbb_real *b,
+                    mbb_real *out);
 /* Multiply colors (channel-by-channel) and place result in output. */
-mbb_real *color_mul(int channels, const mbb_real *a, const mbb_real *b, mbb_real *out);
+mbb_real *color_mul(int channels, const mbb_real *a, const mbb_real *b,
+                    mbb_real *out);
 /* Multiply color by an scalar and place result in output. */
-mbb_real *color_muls(int channels, const mbb_real *a, mbb_real b, mbb_real *out);
+mbb_real *color_muls(int channels, const mbb_real *a, mbb_real b,
+                     mbb_real *out);
 /* Fill every channel of a color with an scalar. */
 mbb_real *color_fill(int channels, mbb_real a, mbb_real *out);
 

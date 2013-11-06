@@ -14,8 +14,8 @@ LDFLAGS=
 LIBS=-lgimpui-2.0 -lgimpwidgets-2.0 -lgimpmodule-2.0 -lgimp-2.0 -lgimpmath-2.0 -lgimpconfig-2.0 -lgimpcolor-2.0 -lgimpbase-2.0 -lgtk-x11-2.0 -lgdk-x11-2.0 -latk-1.0 -lgio-2.0 -lpangoft2-1.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo -lpango-1.0 -lfreetype -lfontconfig -lgobject-2.0 -lglib-2.0
 
 # Source
-HEADERS=src/error.h src/mbb/image.h src/mbb/images_pyramid.h src/mbb/log.h src/mbb/math.h src/mbb/mbb.h src/mbb/prerequisites.h
-SOURCES=src/main.c src/error.c src/mbb/image.c src/mbb/images_pyramid.c src/mbb/log.c src/mbb/math.c src/mbb/mbb.c
+HEADERS=src/error.h src/mbb/image.h src/mbb/images_pyramid.h src/mbb/math.h src/mbb/mbb.h src/mbb/prerequisites.h
+SOURCES=src/main.c src/error.c src/mbb/image.c src/mbb/images_pyramid.c src/mbb/math.c src/mbb/mbb.c
 
 # Binary
 OBJECTS=$(SOURCES:.c=.o)

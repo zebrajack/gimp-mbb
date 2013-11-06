@@ -161,12 +161,13 @@ static void run(const gchar      *name,
   #endif
 }
 
+/* Callback function to update progress bar. */
 void callback_progress_func(float progress) {
   gimp_progress_update(progress);
 }
 
 /* Filter the layers to be exhibited by gui. */
-static gboolean layersConstraintFunc(gint32 image_id, gint32 item_id,
+static gboolean layers_constraint_func(gint32 image_id, gint32 item_id,
                                      gpointer data) {
   if (image_id == *(gint32*)data)
     // Layer will be exhibited.
@@ -211,7 +212,7 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
   gtk_box_pack_start(GTK_BOX(main_vbox), img0_label, FALSE, FALSE, 6);
   gtk_label_set_justify(GTK_LABEL(img0_label), GTK_JUSTIFY_RIGHT);
 
-  combo_img0 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  combo_img0 = gimp_layer_combo_box_new(layers_constraint_func, &img_id);
   //combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
   gimp_int_combo_box_set_active((GimpIntComboBox*)combo_img0,
                                 init_img0_layer_id);
@@ -223,7 +224,7 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
   gtk_box_pack_start(GTK_BOX(main_vbox), img1_label, FALSE, FALSE, 6);
   gtk_label_set_justify(GTK_LABEL(img1_label), GTK_JUSTIFY_RIGHT);
 
-  combo_img1 = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  combo_img1 = gimp_layer_combo_box_new(layers_constraint_func, &img_id);
   gimp_int_combo_box_set_active((GimpIntComboBox*)combo_img1,
                                 init_img1_layer_id);
   gtk_widget_show(combo_img1);
@@ -234,7 +235,7 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
   gtk_box_pack_start(GTK_BOX(main_vbox), mask_label, FALSE, FALSE, 6);
   gtk_label_set_justify(GTK_LABEL(mask_label), GTK_JUSTIFY_RIGHT);
 
-  combo_mask = gimp_layer_combo_box_new(layersConstraintFunc, &img_id);
+  combo_mask = gimp_layer_combo_box_new(layers_constraint_func, &img_id);
   gimp_int_combo_box_set_active((GimpIntComboBox*)combo_mask,
                                 init_mask_layer_id);
   gtk_widget_show(combo_mask);

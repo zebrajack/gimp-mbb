@@ -25,8 +25,10 @@ Image *image_ctor(Image *img, int width, int height, int channels) {
   result->width = width;
   result->height = height;
   result->channels = channels;
-  result->data = (mbb_real*)malloc(result->width * result->height * result->channels * sizeof(mbb_real));
-  memset(result->data, 0, result->width * result->height * result->channels * sizeof(mbb_real));
+  result->data = (mbb_real*)malloc(result->width * result->height *
+                                   result->channels * sizeof(mbb_real));
+  memset(result->data, 0, result->width * result->height *
+         result->channels * sizeof(mbb_real));
   return result;
 }
 
@@ -62,7 +64,8 @@ mbb_real *color_add(int channels, const mbb_real *a, const mbb_real *b,
   return out;
 }
 
-mbb_real *color_mul(int channels, const mbb_real *a, const mbb_real *b, mbb_real *out) {
+mbb_real *color_mul(int channels, const mbb_real *a, const mbb_real *b,
+                    mbb_real *out) {
   int i;
   for (i = 0; i < channels; ++i)
     out[i] = a[i] * b[i];
@@ -100,7 +103,8 @@ Image *image_sub(const Image *a, const Image *b, Image *out) {
   int wi, hi;
   for (hi = 0; hi < a->height; ++hi)
     for (wi = 0; wi < a->width; ++wi)
-      color_sub(a->channels, sample(a,wi,hi), sample(b,wi,hi), sample(out,wi,hi));
+      color_sub(a->channels, sample(a,wi,hi), sample(b,wi,hi),
+                sample(out,wi,hi));
 
   return out;
 }
@@ -109,7 +113,8 @@ Image *image_add(const Image *a, const Image *b, Image *out) {
   int wi, hi;
   for (hi = 0; hi < a->height; ++hi)
     for (wi = 0; wi < a->width; ++wi)
-      color_add(a->channels, sample(a,wi,hi), sample(b,wi,hi), sample(out,wi,hi));
+      color_add(a->channels, sample(a,wi,hi), sample(b,wi,hi),
+                sample(out,wi,hi));
 
   return out;
 }
