@@ -134,7 +134,10 @@ static void run(const gchar      *name,
 
   // Blend function requires at least three layers to work.
   if (num_layers < 3) {
-    gimp_message("Blend function requires at least three layers.");
+    char msg[256];
+    sprintf(msg, "This functionality requires at least three layers. "
+                 "Please, create more %d layer(s).", 3-num_layers);
+    gimp_message(msg);
     return;
   }
 
@@ -267,7 +270,8 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
           gtk_widget_destroy(dialog);
           return TRUE;
         } else {
-          gimp_message("Each layer can be used only once. Please, select a different layer for...");
+          gimp_message("Each layer can be used only once. "
+                       "Please, select a different layer for each input.");
         }
     } else if (response == GTK_RESPONSE_CANCEL ||
                response == GTK_RESPONSE_DELETE_EVENT) {
@@ -306,12 +310,15 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   tmp_type = gimp_drawable_type(img1_layer_id);
 
   if (x0!=tmp_x0 || x1!=tmp_x1 || y0!=tmp_y0 || y1!=tmp_y1) {
-    set_error_msg("Layers of the input images have different boundaries size. Please, set equal boundaries size to continue.");
+    set_error_msg("\'Image 1\' and \'Image 2\' layers have different "
+                  "boundaries size. Please, set equal boundaries size for "
+                  " both layers or select a common region.");
     return FALSE;
   }
 
   if (type!=tmp_type) {
-    set_error_msg("Layers of the input images have different types. Please, choose layers with the same type.");
+    set_error_msg("\'Image 1\' and \'Image 2\' layers have different "
+                  "types. Please, change layers types so that they match.");
     return FALSE;
   }
 
@@ -319,12 +326,15 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   tmp_type = gimp_drawable_type(mask_layer_id);
 
   if (x0!=tmp_x0 || x1!=tmp_x1 || y0!=tmp_y0 || y1!=tmp_y1) {
-    set_error_msg("Layers of the input images and of the mask have different boundaries size. Please, set equal boundaries size to continue.");
+    set_error_msg("\'Image 1\' and \'Mask\' layers have different "
+                  "boundaries size. Please, set equal boundaries size for "
+                  " both layers or select a common region.");
     return FALSE;
   }
 
   if (type!=tmp_type) {
-    set_error_msg("Layers of the input images and of the mask have different types. Please, choose layers with the same type.");
+    set_error_msg("\'Image 1\' and \'Mask\' layers have different "
+                  "types. Please, change layers types so that they match.");
     return FALSE;
   }
 
