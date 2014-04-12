@@ -148,13 +148,10 @@ static void run(const gchar      *name,
   }
 
   gimp_progress_init("Blending...");
-//  gimp_progress_update(0.0);
 
   if (!blend(img0_layer_id, img1_layer_id, mask_layer_id, img_id)) {
     gimp_message(get_error_msg());
   }
-
-//  gimp_progress_update(1.0);
 
   gimp_displays_flush();
 //  gimp_drawable_detach(drawable);
@@ -216,7 +213,7 @@ static gboolean gui(gint32 img_id, gint init_img0_layer_id,
   gtk_label_set_justify(GTK_LABEL(img0_label), GTK_JUSTIFY_RIGHT);
 
   combo_img0 = gimp_layer_combo_box_new(layers_constraint_func, &img_id);
-  //combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
+//  combo_img0 = gimp_layer_combo_box_new(NULL, NULL);
   gimp_int_combo_box_set_active((GimpIntComboBox*)combo_img0,
                                 init_img0_layer_id);
   gtk_widget_show(combo_img0);
@@ -364,12 +361,13 @@ static gboolean blend(gint32 img0_layer_id, gint32 img1_layer_id,
   gimp_image_undo_group_start(img_id);
 
   // Create new layer with the same characteristics to place the result.
-  //out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
-  //out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
+//  out_layer_id = gimp_layer_new_from_drawable(img0_layer_id, img_id);
+//  out_layer_id = gimp_layer_new_from_visible(img_id, img_id, "Blended");
 //  out_layer_id = gimp_layer_new(img_id, "Blended", width, height, type,
 //                                100.0, GIMP_NORMAL_MODE);
-  out_layer_id = gimp_layer_new(img_id, "Blended", gimp_drawable_width(img_id),
-                                gimp_drawable_height(img_id), type,
+  out_layer_id = gimp_layer_new(img_id, "Blended", 
+								gimp_drawable_width(img0_layer_id),
+                                gimp_drawable_height(img0_layer_id), type,
                                 100.0, GIMP_NORMAL_MODE);
   gimp_image_add_layer(img_id, out_layer_id, 0);
   out_layer_drawable = gimp_drawable_get(out_layer_id);
